@@ -38,6 +38,12 @@ export interface MoltbotEnv {
   BROWSER?: Fetcher;
   CDP_SECRET?: string; // Shared secret for CDP endpoint authentication
   WORKER_URL?: string; // Public URL of the worker (for CDP endpoint)
+  // AI Video Generator
+  ELEVENLABS_API_KEY?: string;
+  ELEVENLABS_VOICE_ID?: string;
+  VIDEO_BRAND_NAME?: string;
+  VIDEO_BRAND_COLOR?: string;
+  VIDEO_BRAND_LOGO_URL?: string;
 }
 
 /**

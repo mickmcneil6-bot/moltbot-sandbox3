@@ -26,6 +26,34 @@
   color: var(--text-primary);
 }
 
+/* Navigation tabs */
+.header-nav {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.nav-tab {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.nav-tab:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover);
+}
+
+.nav-tab.active {
+  color: var(--primary-color);
+  background: rgba(233, 69, 96, 0.15);
+}
+
 .app-main {
   flex: 1;
   padding: 2rem;
