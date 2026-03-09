@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: linear-gradient(135deg, {{BRAND_COLOR}} 0%, #1e1b4b 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #fff;
+  }
+  .logo-container {
+    margin-bottom: 32px;
+    animation: fadeIn 1s ease-out;
+  }
+  .logo-container img {
+    max-width: 200px;
+    max-height: 100px;
+    object-fit: contain;
+  }
+  .brand-name {
+    font-size: 64px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    text-align: center;
+    margin-bottom: 16px;
+    animation: slideUp 0.8s ease-out;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  }
+  .title {
+    font-size: 32px;
+    font-weight: 400;
+    opacity: 0.9;
+    text-align: center;
+    max-width: 800px;
+    line-height: 1.4;
+    animation: slideUp 0.8s ease-out 0.2s both;
+  }
+  .tagline {
+    font-size: 20px;
+    font-weight: 300;
+    opacity: 0.7;
+    margin-top: 24px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    animation: fadeIn 1s ease-out 0.4s both;
+  }
+  .accent-line {
+    width: 80px;
+    height: 4px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 2px;
+    margin: 24px 0;
+    animation: expandWidth 0.6s ease-out 0.3s both;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes expandWidth {
+    from { width: 0; opacity: 0; }
+    to { width: 80px; opacity: 1; }
+  }
+</style>
+</head>
+<body>
+  <div class="logo-container" id="logo"></div>
+  <div class="brand-name">{{BRAND_NAME}}</div>
+  <div class="accent-line"></div>
+  <div class="title" id="title"></div>
+  <div class="tagline" id="tagline"></div>
+  <script>
+    const logoUrl = '{{BRAND_LOGO}}';
+    const title = '{{TITLE}}';
+    const tagline = '{{TAGLINE}}';
+    if (logoUrl) {
+      document.getElementById('logo').innerHTML = '<img src="' + logoUrl + '" alt="Logo">';
+    }
+    if (title) {
+      document.getElementById('title').textContent = title;
+    }
+    if (tagline) {
+      document.getElementById('tagline').textContent = tagline;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "brand": {
+    "name": "My Brand",
+    "color": "#6366f1",
+    "logoUrl": "https://example.com/logo.png",
+    "tagline": "Creating the future"
+  },
+  "voice": {
+    "voiceId": "21m00Tcm4TlvDq8ikWAM",
+    "model": "eleven_multilingual_v2",
+    "stability": 0.5,
+    "similarityBoost": 0.75
+  },
+  "video": {
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "introDuration": 3,
+    "outroDuration": 3,
+    "sceneDuration": 5,
+    "fadeDuration": 0.5
+  }
+}

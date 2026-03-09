@@ -28,3 +28,12 @@ MOLTBOT_GATEWAY_TOKEN=dev-token-change-in-prod
 # CDP (Chrome DevTools Protocol) configuration for browser automation
 # CDP_SECRET=shared-secret-for-cdp-auth
 # WORKER_URL=https://your-worker.example.com
+
+# AI Video Generator - ElevenLabs voiceover
+# ELEVENLABS_API_KEY=your-elevenlabs-api-key
+# ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM
+
+# AI Video Generator - Branding
+# VIDEO_BRAND_NAME=My Brand
+# VIDEO_BRAND_COLOR=#6366f1
+# VIDEO_BRAND_LOGO_URL=https://example.com/logo.png
