@@ -37,6 +37,9 @@ COPY moltbot.json.template /root/.clawdbot-templates/moltbot.json.template
 # Copy custom skills
 COPY skills/ /root/clawd/skills/
 
+# Copy SOUL.md personality file for Bob
+COPY SOUL.md /root/.clawdbot-templates/SOUL.md
+
 # Set working directory
 WORKDIR /root/clawd
 

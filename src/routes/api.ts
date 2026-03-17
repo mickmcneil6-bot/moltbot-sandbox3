@@ -278,6 +278,83 @@ adminApi.post('/gateway/restart', async (c) => {
   }
 });
 
+// GET /api/admin/command-center - Get Bob's command center status
+adminApi.get('/command-center', async (c) => {
+  const sandbox = c.get('sandbox');
+
+  // Determine which channels are configured
+  const channels = {
+    whatsapp: {
+      configured: !!(c.env.WHATSAPP_ACCESS_TOKEN && c.env.WHATSAPP_PHONE_NUMBER_ID),
+      label: 'WhatsApp',
+    },
+    teams: {
+      configured: !!(c.env.TEAMS_BOT_ID && c.env.TEAMS_BOT_PASSWORD),
+      label: 'Microsoft Teams',
+    },
+    telegram: {
+      configured: !!c.env.TELEGRAM_BOT_TOKEN,
+      label: 'Telegram',
+    },
+    discord: {
+      configured: !!c.env.DISCORD_BOT_TOKEN,
+      label: 'Discord',
+    },
+    slack: {
+      configured: !!(c.env.SLACK_BOT_TOKEN && c.env.SLACK_APP_TOKEN),
+      label: 'Slack',
+    },
+    web: {
+      configured: true,
+      label: 'Web Chat',
+    },
+  };
+
+  // Determine which integrations are configured
+  const integrations = {
+    anthropic: {
+      configured: !!(c.env.ANTHROPIC_API_KEY || c.env.AI_GATEWAY_API_KEY),
+      label: 'Anthropic (Claude)',
+    },
+    openai: {
+      configured: !!c.env.OPENAI_API_KEY,
+      label: 'OpenAI (ChatGPT + Voice)',
+    },
+    microsoft: {
+      configured: !!(c.env.MS_GRAPH_CLIENT_ID && c.env.MS_GRAPH_CLIENT_SECRET),
+      label: 'Microsoft 365 (Email + Calendar)',
+    },
+    storage: {
+      configured: !!(c.env.R2_ACCESS_KEY_ID && c.env.R2_SECRET_ACCESS_KEY && c.env.CF_ACCOUNT_ID),
+      label: 'R2 Persistent Storage',
+    },
+  };
+
+  // Check gateway status
+  let gatewayStatus = 'unknown';
+  try {
+    const proc = await findExistingMoltbotProcess(sandbox);
+    gatewayStatus = proc ? proc.status : 'stopped';
+  } catch {
+    gatewayStatus = 'error';
+  }
+
+  // Voice capability
+  const voice = {
+    enabled: !!c.env.OPENAI_API_KEY,
+    provider: 'openai',
+    model: c.env.OPENAI_VOICE_MODEL || 'tts-1-hd',
+  };
+
+  return c.json({
+    name: 'Bob',
+    gatewayStatus,
+    channels,
+    integrations,
+    voice,
+  });
+});
+
 // Mount admin API routes under /admin
 api.route('/admin', adminApi);
 

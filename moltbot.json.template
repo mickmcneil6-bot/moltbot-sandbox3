@@ -1,4 +1,9 @@
 {
+  "identity": {
+    "name": "Bob",
+    "theme": "friendly-assistant",
+    "emoji": "🤖"
+  },
   "agents": {
     "defaults": {
       "workspace": "/root/clawd"

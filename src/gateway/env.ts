@@ -56,5 +56,25 @@ export function buildEnvVars(env: MoltbotEnv): Record<string, string> {
   if (env.CDP_SECRET) envVars.CDP_SECRET = env.CDP_SECRET;
   if (env.WORKER_URL) envVars.WORKER_URL = env.WORKER_URL;
 
+  // WhatsApp
+  if (env.WHATSAPP_PHONE_NUMBER_ID) envVars.WHATSAPP_PHONE_NUMBER_ID = env.WHATSAPP_PHONE_NUMBER_ID;
+  if (env.WHATSAPP_ACCESS_TOKEN) envVars.WHATSAPP_ACCESS_TOKEN = env.WHATSAPP_ACCESS_TOKEN;
+  if (env.WHATSAPP_VERIFY_TOKEN) envVars.WHATSAPP_VERIFY_TOKEN = env.WHATSAPP_VERIFY_TOKEN;
+  if (env.WHATSAPP_WEBHOOK_SECRET) envVars.WHATSAPP_WEBHOOK_SECRET = env.WHATSAPP_WEBHOOK_SECRET;
+
+  // Microsoft Teams
+  if (env.TEAMS_BOT_ID) envVars.TEAMS_BOT_ID = env.TEAMS_BOT_ID;
+  if (env.TEAMS_BOT_PASSWORD) envVars.TEAMS_BOT_PASSWORD = env.TEAMS_BOT_PASSWORD;
+  if (env.TEAMS_TENANT_ID) envVars.TEAMS_TENANT_ID = env.TEAMS_TENANT_ID;
+
+  // Microsoft Graph API (email + calendar)
+  if (env.MS_GRAPH_CLIENT_ID) envVars.MS_GRAPH_CLIENT_ID = env.MS_GRAPH_CLIENT_ID;
+  if (env.MS_GRAPH_CLIENT_SECRET) envVars.MS_GRAPH_CLIENT_SECRET = env.MS_GRAPH_CLIENT_SECRET;
+  if (env.MS_GRAPH_TENANT_ID) envVars.MS_GRAPH_TENANT_ID = env.MS_GRAPH_TENANT_ID;
+  if (env.MS_GRAPH_REFRESH_TOKEN) envVars.MS_GRAPH_REFRESH_TOKEN = env.MS_GRAPH_REFRESH_TOKEN;
+
+  // OpenAI voice model preference
+  if (env.OPENAI_VOICE_MODEL) envVars.OPENAI_VOICE_MODEL = env.OPENAI_VOICE_MODEL;
+
   return envVars;
 }

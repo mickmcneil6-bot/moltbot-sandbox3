@@ -105,6 +105,24 @@ if [ -d "$BACKUP_DIR/skills" ] && [ "$(ls -A $BACKUP_DIR/skills 2>/dev/null)" ];
     fi
 fi
 
+# Deploy SOUL.md personality file (Bob)
+SOUL_TEMPLATE="$TEMPLATE_DIR/SOUL.md"
+SOUL_DEST="$CONFIG_DIR/SOUL.md"
+if [ -f "$SOUL_TEMPLATE" ] && [ ! -f "$SOUL_DEST" ]; then
+    echo "Deploying Bob personality (SOUL.md)..."
+    cp "$SOUL_TEMPLATE" "$SOUL_DEST"
+    echo "SOUL.md deployed to $SOUL_DEST"
+elif [ -f "$SOUL_TEMPLATE" ]; then
+    echo "SOUL.md already exists at $SOUL_DEST, keeping existing"
+fi
+
+# Also deploy SOUL.md to workspace for agent access
+WORKSPACE_SOUL="/root/clawd/SOUL.md"
+if [ -f "$SOUL_TEMPLATE" ] && [ ! -f "$WORKSPACE_SOUL" ]; then
+    cp "$SOUL_TEMPLATE" "$WORKSPACE_SOUL"
+    echo "SOUL.md deployed to workspace"
+fi
+
 # If config file still doesn't exist, create from template
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "No existing config found, initializing from template..."
@@ -152,6 +170,13 @@ config.agents.defaults = config.agents.defaults || {};
 config.agents.defaults.model = config.agents.defaults.model || {};
 config.gateway = config.gateway || {};
 config.channels = config.channels || {};
+
+// Configure Bob identity
+config.identity = config.identity || {};
+config.identity.name = config.identity.name || 'Bob';
+config.identity.theme = config.identity.theme || 'friendly-assistant';
+config.identity.emoji = config.identity.emoji || '🤖';
+console.log('Agent identity:', config.identity.name);
 
 // Clean up any broken anthropic provider config from previous runs
 // (older versions didn't include required 'name' field)
@@ -206,6 +231,40 @@ if (process.env.SLACK_BOT_TOKEN && process.env.SLACK_APP_TOKEN) {
     config.channels.slack.botToken = process.env.SLACK_BOT_TOKEN;
     config.channels.slack.appToken = process.env.SLACK_APP_TOKEN;
     config.channels.slack.enabled = true;
+}
+
+// WhatsApp configuration
+if (process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID) {
+    config.channels.whatsapp = config.channels.whatsapp || {};
+    config.channels.whatsapp.phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    config.channels.whatsapp.accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+    config.channels.whatsapp.verifyToken = process.env.WHATSAPP_VERIFY_TOKEN || '';
+    config.channels.whatsapp.webhookSecret = process.env.WHATSAPP_WEBHOOK_SECRET || '';
+    config.channels.whatsapp.enabled = true;
+    console.log('WhatsApp channel enabled');
+}
+
+// Microsoft Teams configuration
+if (process.env.TEAMS_BOT_ID && process.env.TEAMS_BOT_PASSWORD) {
+    config.channels.teams = config.channels.teams || {};
+    config.channels.teams.botId = process.env.TEAMS_BOT_ID;
+    config.channels.teams.botPassword = process.env.TEAMS_BOT_PASSWORD;
+    config.channels.teams.tenantId = process.env.TEAMS_TENANT_ID || '';
+    config.channels.teams.enabled = true;
+    console.log('Microsoft Teams channel enabled');
+}
+
+// Microsoft Graph API (email + calendar integration)
+if (process.env.MS_GRAPH_CLIENT_ID && process.env.MS_GRAPH_CLIENT_SECRET) {
+    config.integrations = config.integrations || {};
+    config.integrations.microsoft = config.integrations.microsoft || {};
+    config.integrations.microsoft.clientId = process.env.MS_GRAPH_CLIENT_ID;
+    config.integrations.microsoft.clientSecret = process.env.MS_GRAPH_CLIENT_SECRET;
+    config.integrations.microsoft.tenantId = process.env.MS_GRAPH_TENANT_ID || 'common';
+    config.integrations.microsoft.refreshToken = process.env.MS_GRAPH_REFRESH_TOKEN || '';
+    config.integrations.microsoft.scopes = ['Mail.Read', 'Mail.Send', 'Calendars.ReadWrite', 'User.Read'];
+    config.integrations.microsoft.enabled = true;
+    console.log('Microsoft Graph (email + calendar) integration enabled');
 }
 
 // Base URL override (e.g., for Cloudflare AI Gateway)
@@ -263,6 +322,35 @@ if (isOpenAI) {
 } else {
     // Default to Anthropic without custom base URL (uses built-in pi-ai catalog)
     config.agents.defaults.model.primary = 'anthropic/claude-opus-4-5';
+}
+
+// Always configure OpenAI as secondary provider if key is available
+// This enables ChatGPT models alongside Anthropic (dual-provider for Bob)
+if (process.env.OPENAI_API_KEY && !config.models?.providers?.openai) {
+    config.models = config.models || {};
+    config.models.providers = config.models.providers || {};
+    config.models.providers.openai = {
+        api: 'openai-responses',
+        models: [
+            { id: 'gpt-5.2', name: 'GPT-5.2', contextWindow: 200000 },
+            { id: 'gpt-5', name: 'GPT-5', contextWindow: 200000 },
+            { id: 'gpt-4.5-preview', name: 'GPT-4.5 Preview', contextWindow: 128000 },
+            { id: 'gpt-4o', name: 'GPT-4o', contextWindow: 128000 },
+        ]
+    };
+    config.agents.defaults.models = config.agents.defaults.models || {};
+    config.agents.defaults.models['openai/gpt-5.2'] = { alias: 'GPT-5.2' };
+    config.agents.defaults.models['openai/gpt-4o'] = { alias: 'GPT-4o' };
+    console.log('OpenAI provider configured as secondary (dual-provider mode)');
+}
+
+// Voice configuration (ChatGPT voice for calls/voice notes)
+if (process.env.OPENAI_API_KEY) {
+    config.voice = config.voice || {};
+    config.voice.provider = 'openai';
+    config.voice.model = process.env.OPENAI_VOICE_MODEL || 'tts-1-hd';
+    config.voice.enabled = true;
+    console.log('Voice enabled via OpenAI TTS:', config.voice.model);
 }
 
 // Write updated config

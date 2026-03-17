@@ -6,28 +6,152 @@ import {
   restartGateway,
   getStorageStatus,
   triggerSync,
+  getCommandCenterStatus,
   AuthError,
   type PendingDevice,
   type PairedDevice,
   type DeviceListResponse,
   type StorageStatusResponse,
+  type CommandCenterResponse,
 } from '../api'
 import './AdminPage.css'
 
-// Small inline spinner for buttons
 function ButtonSpinner() {
   return <span className="btn-spinner" />
+}
+
+function StatusDot({ active }: { active: boolean }) {
+  return <span className={`status-dot ${active ? 'active' : 'inactive'}`} />
+}
+
+function CommandCenterPanel({ data }: { data: CommandCenterResponse }) {
+  const configuredChannels = Object.entries(data.channels).filter(([, v]) => v.configured)
+  const unconfiguredChannels = Object.entries(data.channels).filter(([, v]) => !v.configured)
+  const configuredIntegrations = Object.entries(data.integrations).filter(([, v]) => v.configured)
+  const unconfiguredIntegrations = Object.entries(data.integrations).filter(([, v]) => !v.configured)
+
+  return (
+    <div className="command-center-grid">
+      {/* Gateway Status */}
+      <section className="cc-card cc-status">
+        <div className="cc-card-header">
+          <h3>Bob Status</h3>
+          <span className={`gateway-badge ${data.gatewayStatus === 'running' ? 'running' : 'stopped'}`}>
+            {data.gatewayStatus}
+          </span>
+        </div>
+        <p className="cc-subtitle">Your personal AI assistant is {data.gatewayStatus === 'running' ? 'online and ready' : 'starting up'}.</p>
+        {data.voice.enabled && (
+          <div className="voice-badge">
+            Voice enabled ({data.voice.model})
+          </div>
+        )}
+      </section>
+
+      {/* Channels */}
+      <section className="cc-card cc-channels">
+        <div className="cc-card-header">
+          <h3>Messaging Channels</h3>
+          <span className="cc-count">{configuredChannels.length} active</span>
+        </div>
+        <div className="cc-list">
+          {configuredChannels.map(([key, ch]) => (
+            <div key={key} className="cc-list-item">
+              <StatusDot active={true} />
+              <span>{ch.label}</span>
+            </div>
+          ))}
+          {unconfiguredChannels.map(([key, ch]) => (
+            <div key={key} className="cc-list-item dimmed">
+              <StatusDot active={false} />
+              <span>{ch.label}</span>
+              <span className="setup-hint">needs setup</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* AI & Integrations */}
+      <section className="cc-card cc-integrations">
+        <div className="cc-card-header">
+          <h3>AI & Integrations</h3>
+          <span className="cc-count">{configuredIntegrations.length} active</span>
+        </div>
+        <div className="cc-list">
+          {configuredIntegrations.map(([key, int]) => (
+            <div key={key} className="cc-list-item">
+              <StatusDot active={true} />
+              <span>{int.label}</span>
+            </div>
+          ))}
+          {unconfiguredIntegrations.map(([key, int]) => (
+            <div key={key} className="cc-list-item dimmed">
+              <StatusDot active={false} />
+              <span>{int.label}</span>
+              <span className="setup-hint">needs setup</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Quick Actions */}
+      <section className="cc-card cc-actions">
+        <div className="cc-card-header">
+          <h3>Quick Start Guide</h3>
+        </div>
+        <div className="cc-guide">
+          <div className="guide-step">
+            <span className="step-num">1</span>
+            <div>
+              <strong>Chat with Bob</strong>
+              <p>Visit the main URL (without <code>/_admin/</code>) to open the web chat.</p>
+            </div>
+          </div>
+          <div className="guide-step">
+            <span className="step-num">2</span>
+            <div>
+              <strong>Connect WhatsApp</strong>
+              <p>Set <code>WHATSAPP_ACCESS_TOKEN</code> and <code>WHATSAPP_PHONE_NUMBER_ID</code> via wrangler secrets.</p>
+            </div>
+          </div>
+          <div className="guide-step">
+            <span className="step-num">3</span>
+            <div>
+              <strong>Connect Teams</strong>
+              <p>Set <code>TEAMS_BOT_ID</code> and <code>TEAMS_BOT_PASSWORD</code> via wrangler secrets.</p>
+            </div>
+          </div>
+          <div className="guide-step">
+            <span className="step-num">4</span>
+            <div>
+              <strong>Enable Email & Calendar</strong>
+              <p>Set <code>MS_GRAPH_CLIENT_ID</code>, <code>MS_GRAPH_CLIENT_SECRET</code>, and <code>MS_GRAPH_REFRESH_TOKEN</code>.</p>
+            </div>
+          </div>
+          <div className="guide-step">
+            <span className="step-num">5</span>
+            <div>
+              <strong>Enable ChatGPT Voice</strong>
+              <p>Set <code>OPENAI_API_KEY</code> to enable voice notes and calls via ChatGPT TTS.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
 }
 
 export default function AdminPage() {
   const [pending, setPending] = useState<PendingDevice[]>([])
   const [paired, setPaired] = useState<PairedDevice[]>([])
   const [storageStatus, setStorageStatus] = useState<StorageStatusResponse | null>(null)
+  const [commandCenter, setCommandCenter] = useState<CommandCenterResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [actionInProgress, setActionInProgress] = useState<string | null>(null)
   const [restartInProgress, setRestartInProgress] = useState(false)
   const [syncInProgress, setSyncInProgress] = useState(false)
+  const [activeTab, setActiveTab] = useState<'overview' | 'devices' | 'storage'>('overview')
 
   const fetchDevices = useCallback(async () => {
     try {
@@ -35,7 +159,7 @@ export default function AdminPage() {
       const data: DeviceListResponse = await listDevices()
       setPending(data.pending || [])
       setPaired(data.paired || [])
-      
+
       if (data.error) {
         setError(data.error)
       } else if (data.parseError) {
@@ -57,22 +181,30 @@ export default function AdminPage() {
       const status = await getStorageStatus()
       setStorageStatus(status)
     } catch (err) {
-      // Don't show error for storage status - it's not critical
       console.error('Failed to fetch storage status:', err)
+    }
+  }, [])
+
+  const fetchCommandCenter = useCallback(async () => {
+    try {
+      const data = await getCommandCenterStatus()
+      setCommandCenter(data)
+    } catch (err) {
+      console.error('Failed to fetch command center status:', err)
     }
   }, [])
 
   useEffect(() => {
     fetchDevices()
     fetchStorageStatus()
-  }, [fetchDevices, fetchStorageStatus])
+    fetchCommandCenter()
+  }, [fetchDevices, fetchStorageStatus, fetchCommandCenter])
 
   const handleApprove = async (requestId: string) => {
     setActionInProgress(requestId)
     try {
       const result = await approveDevice(requestId)
       if (result.success) {
-        // Refresh the list
         await fetchDevices()
       } else {
         setError(result.error || 'Approval failed')
@@ -86,14 +218,12 @@ export default function AdminPage() {
 
   const handleApproveAll = async () => {
     if (pending.length === 0) return
-    
     setActionInProgress('all')
     try {
       const result = await approveAllDevices()
       if (result.failed && result.failed.length > 0) {
         setError(`Failed to approve ${result.failed.length} device(s)`)
       }
-      // Refresh the list
       await fetchDevices()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to approve devices')
@@ -103,17 +233,16 @@ export default function AdminPage() {
   }
 
   const handleRestartGateway = async () => {
-    if (!confirm('Are you sure you want to restart the gateway? This will disconnect all clients temporarily.')) {
+    if (!confirm('Are you sure you want to restart Bob? This will disconnect all clients temporarily.')) {
       return
     }
-    
     setRestartInProgress(true)
     try {
       const result = await restartGateway()
       if (result.success) {
         setError(null)
-        // Show success message briefly
-        alert('Gateway restart initiated. Clients will reconnect automatically.')
+        alert('Bob is restarting. Clients will reconnect automatically.')
+        setTimeout(() => fetchCommandCenter(), 5000)
       } else {
         setError(result.error || 'Failed to restart gateway')
       }
@@ -129,7 +258,6 @@ export default function AdminPage() {
     try {
       const result = await triggerSync()
       if (result.success) {
-        // Update the storage status with new lastSync time
         setStorageStatus(prev => prev ? { ...prev, lastSync: result.lastSync || null } : null)
         setError(null)
       } else {
@@ -145,17 +273,13 @@ export default function AdminPage() {
   const formatSyncTime = (isoString: string | null) => {
     if (!isoString) return 'Never'
     try {
-      const date = new Date(isoString)
-      return date.toLocaleString()
+      return new Date(isoString).toLocaleString()
     } catch {
       return isoString
     }
   }
 
-  const formatTimestamp = (ts: number) => {
-    const date = new Date(ts)
-    return date.toLocaleString()
-  }
+  const formatTimestamp = (ts: number) => new Date(ts).toLocaleString()
 
   const formatTimeAgo = (ts: number) => {
     const seconds = Math.floor((Date.now() - ts) / 1000)
@@ -173,223 +297,260 @@ export default function AdminPage() {
       {error && (
         <div className="error-banner">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="dismiss-btn">
-            Dismiss
-          </button>
+          <button onClick={() => setError(null)} className="dismiss-btn">Dismiss</button>
         </div>
       )}
 
-      {storageStatus && !storageStatus.configured && (
-        <div className="warning-banner">
-          <div className="warning-content">
-            <strong>R2 Storage Not Configured</strong>
-            <p>
-              Paired devices and conversations will be lost when the container restarts.
-              To enable persistent storage, configure R2 credentials.
-              See the <a href="https://github.com/cloudflare/moltworker" target="_blank" rel="noopener noreferrer">README</a> for setup instructions.
-            </p>
-            {storageStatus.missing && (
-              <p className="missing-secrets">
-                Missing: {storageStatus.missing.join(', ')}
-              </p>
-            )}
+      {/* Tab Navigation */}
+      <div className="tab-nav">
+        <button
+          className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('overview')}
+        >
+          Overview
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'devices' ? 'active' : ''}`}
+          onClick={() => setActiveTab('devices')}
+        >
+          Devices {pending.length > 0 && <span className="tab-badge">{pending.length}</span>}
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'storage' ? 'active' : ''}`}
+          onClick={() => setActiveTab('storage')}
+        >
+          Storage & Gateway
+        </button>
+      </div>
+
+      {/* Overview Tab */}
+      {activeTab === 'overview' && (
+        loading ? (
+          <div className="loading">
+            <div className="spinner"></div>
+            <p>Loading Bob's Command Center...</p>
           </div>
-        </div>
+        ) : commandCenter ? (
+          <CommandCenterPanel data={commandCenter} />
+        ) : (
+          <div className="loading">
+            <p>Could not load command center data.</p>
+            <button className="btn btn-secondary" onClick={fetchCommandCenter}>Retry</button>
+          </div>
+        )
       )}
 
-      {storageStatus?.configured && (
-        <div className="success-banner">
-          <div className="storage-status">
-            <div className="storage-info">
-              <span>R2 storage is configured. Your data will persist across container restarts.</span>
-              <span className="last-sync">
-                Last backup: {formatSyncTime(storageStatus.lastSync)}
-              </span>
-            </div>
-            <button
-              className="btn btn-secondary btn-sm"
-              onClick={handleSync}
-              disabled={syncInProgress}
-            >
-              {syncInProgress && <ButtonSpinner />}
-              {syncInProgress ? 'Syncing...' : 'Backup Now'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      <section className="devices-section gateway-section">
-        <div className="section-header">
-          <h2>Gateway Controls</h2>
-          <button
-            className="btn btn-danger"
-            onClick={handleRestartGateway}
-            disabled={restartInProgress}
-          >
-            {restartInProgress && <ButtonSpinner />}
-            {restartInProgress ? 'Restarting...' : 'Restart Gateway'}
-          </button>
-        </div>
-        <p className="hint">
-          Restart the gateway to apply configuration changes or recover from errors.
-          All connected clients will be temporarily disconnected.
-        </p>
-      </section>
-
-      {loading ? (
-        <div className="loading">
-          <div className="spinner"></div>
-          <p>Loading devices...</p>
-        </div>
-      ) : (
-        <>
-          <section className="devices-section">
-        <div className="section-header">
-          <h2>Pending Pairing Requests</h2>
-          <div className="header-actions">
-            {pending.length > 0 && (
-              <button
-                className="btn btn-primary"
-                onClick={handleApproveAll}
-                disabled={actionInProgress !== null}
-              >
-                {actionInProgress === 'all' && <ButtonSpinner />}
-                {actionInProgress === 'all' ? 'Approving...' : `Approve All (${pending.length})`}
-              </button>
-            )}
-            <button className="btn btn-secondary" onClick={fetchDevices} disabled={loading}>
-              Refresh
-            </button>
-          </div>
-        </div>
-
-        {pending.length === 0 ? (
-          <div className="empty-state">
-            <p>No pending pairing requests</p>
-            <p className="hint">
-              Devices will appear here when they attempt to connect without being paired.
-            </p>
+      {/* Devices Tab */}
+      {activeTab === 'devices' && (
+        loading ? (
+          <div className="loading">
+            <div className="spinner"></div>
+            <p>Loading devices...</p>
           </div>
         ) : (
-          <div className="devices-grid">
-            {pending.map((device) => (
-              <div key={device.requestId} className="device-card pending">
-                <div className="device-header">
-                  <span className="device-name">
-                    {device.displayName || device.deviceId || 'Unknown Device'}
-                  </span>
-                  <span className="device-badge pending">Pending</span>
-                </div>
-                <div className="device-details">
-                  {device.platform && (
-                    <div className="detail-row">
-                      <span className="label">Platform:</span>
-                      <span className="value">{device.platform}</span>
-                    </div>
+          <>
+            <section className="devices-section">
+              <div className="section-header">
+                <h2>Pending Pairing Requests</h2>
+                <div className="header-actions">
+                  {pending.length > 0 && (
+                    <button
+                      className="btn btn-primary"
+                      onClick={handleApproveAll}
+                      disabled={actionInProgress !== null}
+                    >
+                      {actionInProgress === 'all' && <ButtonSpinner />}
+                      {actionInProgress === 'all' ? 'Approving...' : `Approve All (${pending.length})`}
+                    </button>
                   )}
-                  {device.clientId && (
-                    <div className="detail-row">
-                      <span className="label">Client:</span>
-                      <span className="value">{device.clientId}</span>
-                    </div>
-                  )}
-                  {device.clientMode && (
-                    <div className="detail-row">
-                      <span className="label">Mode:</span>
-                      <span className="value">{device.clientMode}</span>
-                    </div>
-                  )}
-                  {device.role && (
-                    <div className="detail-row">
-                      <span className="label">Role:</span>
-                      <span className="value">{device.role}</span>
-                    </div>
-                  )}
-                  {device.remoteIp && (
-                    <div className="detail-row">
-                      <span className="label">IP:</span>
-                      <span className="value">{device.remoteIp}</span>
-                    </div>
-                  )}
-                  <div className="detail-row">
-                    <span className="label">Requested:</span>
-                    <span className="value" title={formatTimestamp(device.ts)}>
-                      {formatTimeAgo(device.ts)}
-                    </span>
-                  </div>
-                </div>
-                <div className="device-actions">
-                  <button
-                    className="btn btn-success"
-                    onClick={() => handleApprove(device.requestId)}
-                    disabled={actionInProgress !== null}
-                  >
-                    {actionInProgress === device.requestId && <ButtonSpinner />}
-                    {actionInProgress === device.requestId ? 'Approving...' : 'Approve'}
+                  <button className="btn btn-secondary" onClick={fetchDevices} disabled={loading}>
+                    Refresh
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
 
-      <section className="devices-section">
-        <div className="section-header">
-          <h2>Paired Devices</h2>
-        </div>
+              {pending.length === 0 ? (
+                <div className="empty-state">
+                  <p>No pending pairing requests</p>
+                  <p className="hint">Devices will appear here when they attempt to connect.</p>
+                </div>
+              ) : (
+                <div className="devices-grid">
+                  {pending.map((device) => (
+                    <div key={device.requestId} className="device-card pending">
+                      <div className="device-header">
+                        <span className="device-name">
+                          {device.displayName || device.deviceId || 'Unknown Device'}
+                        </span>
+                        <span className="device-badge pending">Pending</span>
+                      </div>
+                      <div className="device-details">
+                        {device.platform && (
+                          <div className="detail-row">
+                            <span className="label">Platform:</span>
+                            <span className="value">{device.platform}</span>
+                          </div>
+                        )}
+                        {device.clientId && (
+                          <div className="detail-row">
+                            <span className="label">Client:</span>
+                            <span className="value">{device.clientId}</span>
+                          </div>
+                        )}
+                        {device.clientMode && (
+                          <div className="detail-row">
+                            <span className="label">Mode:</span>
+                            <span className="value">{device.clientMode}</span>
+                          </div>
+                        )}
+                        {device.role && (
+                          <div className="detail-row">
+                            <span className="label">Role:</span>
+                            <span className="value">{device.role}</span>
+                          </div>
+                        )}
+                        {device.remoteIp && (
+                          <div className="detail-row">
+                            <span className="label">IP:</span>
+                            <span className="value">{device.remoteIp}</span>
+                          </div>
+                        )}
+                        <div className="detail-row">
+                          <span className="label">Requested:</span>
+                          <span className="value" title={formatTimestamp(device.ts)}>
+                            {formatTimeAgo(device.ts)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="device-actions">
+                        <button
+                          className="btn btn-success"
+                          onClick={() => handleApprove(device.requestId)}
+                          disabled={actionInProgress !== null}
+                        >
+                          {actionInProgress === device.requestId && <ButtonSpinner />}
+                          {actionInProgress === device.requestId ? 'Approving...' : 'Approve'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
 
-        {paired.length === 0 ? (
-          <div className="empty-state">
-            <p>No paired devices</p>
-          </div>
-        ) : (
-          <div className="devices-grid">
-            {paired.map((device, index) => (
-              <div key={device.deviceId || index} className="device-card paired">
-                <div className="device-header">
-                  <span className="device-name">
-                    {device.displayName || device.deviceId || 'Unknown Device'}
-                  </span>
-                  <span className="device-badge paired">Paired</span>
-                </div>
-                <div className="device-details">
-                  {device.platform && (
-                    <div className="detail-row">
-                      <span className="label">Platform:</span>
-                      <span className="value">{device.platform}</span>
-                    </div>
-                  )}
-                  {device.clientId && (
-                    <div className="detail-row">
-                      <span className="label">Client:</span>
-                      <span className="value">{device.clientId}</span>
-                    </div>
-                  )}
-                  {device.clientMode && (
-                    <div className="detail-row">
-                      <span className="label">Mode:</span>
-                      <span className="value">{device.clientMode}</span>
-                    </div>
-                  )}
-                  {device.role && (
-                    <div className="detail-row">
-                      <span className="label">Role:</span>
-                      <span className="value">{device.role}</span>
-                    </div>
-                  )}
-                  <div className="detail-row">
-                    <span className="label">Paired:</span>
-                    <span className="value" title={formatTimestamp(device.approvedAtMs)}>
-                      {formatTimeAgo(device.approvedAtMs)}
-                    </span>
-                  </div>
-                </div>
+            <section className="devices-section">
+              <div className="section-header">
+                <h2>Paired Devices</h2>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+              {paired.length === 0 ? (
+                <div className="empty-state">
+                  <p>No paired devices</p>
+                </div>
+              ) : (
+                <div className="devices-grid">
+                  {paired.map((device, index) => (
+                    <div key={device.deviceId || index} className="device-card paired">
+                      <div className="device-header">
+                        <span className="device-name">
+                          {device.displayName || device.deviceId || 'Unknown Device'}
+                        </span>
+                        <span className="device-badge paired">Paired</span>
+                      </div>
+                      <div className="device-details">
+                        {device.platform && (
+                          <div className="detail-row">
+                            <span className="label">Platform:</span>
+                            <span className="value">{device.platform}</span>
+                          </div>
+                        )}
+                        {device.clientId && (
+                          <div className="detail-row">
+                            <span className="label">Client:</span>
+                            <span className="value">{device.clientId}</span>
+                          </div>
+                        )}
+                        {device.clientMode && (
+                          <div className="detail-row">
+                            <span className="label">Mode:</span>
+                            <span className="value">{device.clientMode}</span>
+                          </div>
+                        )}
+                        {device.role && (
+                          <div className="detail-row">
+                            <span className="label">Role:</span>
+                            <span className="value">{device.role}</span>
+                          </div>
+                        )}
+                        <div className="detail-row">
+                          <span className="label">Paired:</span>
+                          <span className="value" title={formatTimestamp(device.approvedAtMs)}>
+                            {formatTimeAgo(device.approvedAtMs)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </>
+        )
+      )}
+
+      {/* Storage & Gateway Tab */}
+      {activeTab === 'storage' && (
+        <>
+          <section className="devices-section gateway-section">
+            <div className="section-header">
+              <h2>Bob Gateway Controls</h2>
+              <button
+                className="btn btn-danger"
+                onClick={handleRestartGateway}
+                disabled={restartInProgress}
+              >
+                {restartInProgress && <ButtonSpinner />}
+                {restartInProgress ? 'Restarting...' : 'Restart Bob'}
+              </button>
+            </div>
+            <p className="hint">
+              Restart Bob to apply configuration changes or recover from errors.
+              All connected clients will be temporarily disconnected.
+            </p>
+          </section>
+
+          {storageStatus && !storageStatus.configured && (
+            <div className="warning-banner">
+              <div className="warning-content">
+                <strong>R2 Storage Not Configured</strong>
+                <p>
+                  Conversations and paired devices will be lost when the container restarts.
+                  Configure R2 credentials for persistence.
+                </p>
+                {storageStatus.missing && (
+                  <p className="missing-secrets">Missing: {storageStatus.missing.join(', ')}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {storageStatus?.configured && (
+            <div className="success-banner">
+              <div className="storage-status">
+                <div className="storage-info">
+                  <span>R2 storage is configured. Bob's data persists across restarts.</span>
+                  <span className="last-sync">Last backup: {formatSyncTime(storageStatus.lastSync)}</span>
+                </div>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleSync}
+                  disabled={syncInProgress}
+                >
+                  {syncInProgress && <ButtonSpinner />}
+                  {syncInProgress ? 'Syncing...' : 'Backup Now'}
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

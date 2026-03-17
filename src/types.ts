@@ -27,6 +27,22 @@ export interface MoltbotEnv {
   DISCORD_DM_POLICY?: string;
   SLACK_BOT_TOKEN?: string;
   SLACK_APP_TOKEN?: string;
+  // WhatsApp configuration (via OpenClaw WhatsApp channel)
+  WHATSAPP_PHONE_NUMBER_ID?: string;
+  WHATSAPP_ACCESS_TOKEN?: string;
+  WHATSAPP_VERIFY_TOKEN?: string;
+  WHATSAPP_WEBHOOK_SECRET?: string;
+  // Microsoft Teams configuration
+  TEAMS_BOT_ID?: string;
+  TEAMS_BOT_PASSWORD?: string;
+  TEAMS_TENANT_ID?: string;
+  // Microsoft Graph API (email + calendar)
+  MS_GRAPH_CLIENT_ID?: string;
+  MS_GRAPH_CLIENT_SECRET?: string;
+  MS_GRAPH_TENANT_ID?: string;
+  MS_GRAPH_REFRESH_TOKEN?: string;
+  // OpenAI API (ChatGPT + voice)
+  OPENAI_VOICE_MODEL?: string; // e.g., 'tts-1' or 'tts-1-hd'
   // Cloudflare Access configuration for admin routes
   CF_ACCESS_TEAM_DOMAIN?: string; // e.g., 'myteam.cloudflareaccess.com'
   CF_ACCESS_AUD?: string; // Application Audience (AUD) tag

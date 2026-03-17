@@ -140,3 +140,31 @@ export async function triggerSync(): Promise<SyncResponse> {
     method: 'POST',
   });
 }
+
+export interface ChannelStatus {
+  configured: boolean;
+  label: string;
+}
+
+export interface IntegrationStatus {
+  configured: boolean;
+  label: string;
+}
+
+export interface VoiceStatus {
+  enabled: boolean;
+  provider: string;
+  model: string;
+}
+
+export interface CommandCenterResponse {
+  name: string;
+  gatewayStatus: string;
+  channels: Record<string, ChannelStatus>;
+  integrations: Record<string, IntegrationStatus>;
+  voice: VoiceStatus;
+}
+
+export async function getCommandCenterStatus(): Promise<CommandCenterResponse> {
+  return apiRequest<CommandCenterResponse>('/command-center');
+}

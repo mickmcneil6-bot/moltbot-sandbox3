@@ -72,18 +72,43 @@
   },
   // Note: CF_ACCOUNT_ID should be set via `wrangler secret put CF_ACCOUNT_ID`
   // Secrets to configure via `wrangler secret put`:
-  // - ANTHROPIC_API_KEY: Your Anthropic API key
+  //
+  // === Required ===
+  // - ANTHROPIC_API_KEY: Your Anthropic API key (Claude)
   // - CF_ACCESS_TEAM_DOMAIN: Cloudflare Access team domain
   // - CF_ACCESS_AUD: Cloudflare Access application audience
+  // - MOLTBOT_GATEWAY_TOKEN: Token to protect gateway access
+  //
+  // === AI Providers ===
+  // - OPENAI_API_KEY: (optional) OpenAI API key for ChatGPT + voice
+  // - OPENAI_VOICE_MODEL: (optional) Voice model, default 'tts-1-hd'
+  // - AI_GATEWAY_API_KEY: (optional) API key for Cloudflare AI Gateway
+  // - AI_GATEWAY_BASE_URL: (optional) Cloudflare AI Gateway URL
+  //
+  // === Messaging Channels ===
+  // - WHATSAPP_PHONE_NUMBER_ID: (optional) WhatsApp Business phone number ID
+  // - WHATSAPP_ACCESS_TOKEN: (optional) WhatsApp Business access token
+  // - WHATSAPP_VERIFY_TOKEN: (optional) Webhook verification token
+  // - WHATSAPP_WEBHOOK_SECRET: (optional) Webhook signature secret
+  // - TEAMS_BOT_ID: (optional) Microsoft Teams bot app ID
+  // - TEAMS_BOT_PASSWORD: (optional) Microsoft Teams bot password
+  // - TEAMS_TENANT_ID: (optional) Microsoft Teams tenant ID
   // - TELEGRAM_BOT_TOKEN: (optional) Telegram bot token
   // - DISCORD_BOT_TOKEN: (optional) Discord bot token
   // - SLACK_BOT_TOKEN: (optional) Slack bot token
   // - SLACK_APP_TOKEN: (optional) Slack app token
-  // - MOLTBOT_GATEWAY_TOKEN: (optional) Token to protect gateway access, if unset device pairing will be used
-  // - CDP_SECRET: (optional) Shared secret for /cdp endpoint authentication
   //
-  // R2 persistent storage secrets (required for data persistence across sessions):
+  // === Microsoft 365 (Email + Calendar) ===
+  // - MS_GRAPH_CLIENT_ID: (optional) Azure AD app client ID
+  // - MS_GRAPH_CLIENT_SECRET: (optional) Azure AD app client secret
+  // - MS_GRAPH_TENANT_ID: (optional) Azure AD tenant ID
+  // - MS_GRAPH_REFRESH_TOKEN: (optional) OAuth refresh token for Graph API
+  //
+  // === R2 Persistent Storage ===
   // - R2_ACCESS_KEY_ID: R2 access key ID (from R2 API tokens)
   // - R2_SECRET_ACCESS_KEY: R2 secret access key (from R2 API tokens)
   // - CF_ACCOUNT_ID: Your Cloudflare account ID (for R2 endpoint URL)
+  //
+  // === Other ===
+  // - CDP_SECRET: (optional) Shared secret for /cdp endpoint authentication
 }
