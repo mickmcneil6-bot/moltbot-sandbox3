@@ -141,6 +141,23 @@ Browser
 | `moltbot.json.template` | Default Moltbot configuration template |
 | `wrangler.jsonc` | Cloudflare Worker + Container configuration |
 
+## Claude Code + Azure Setup
+
+To set up Claude Code with Azure CLI for this project:
+
+```bash
+# Quick setup (installs Claude Code, Azure CLI, and project deps)
+./setup-claude-code-azure.sh
+
+# Or manually:
+npm install -g @anthropic-ai/claude-code
+brew install azure-cli       # macOS
+az login                     # authenticate with Azure
+claude                       # start Claude Code
+```
+
+Project-level Claude Code permissions are configured in `.claude/settings.json`.
+
 ## Local Development
 
 ```bash
